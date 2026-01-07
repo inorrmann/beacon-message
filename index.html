@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rebel Cipher Vault</title>
+  <title>Cylinder Message</title>
   <style>
       body {
           font-family: 'Courier New', monospace;
@@ -91,27 +91,27 @@
 </head>
 <body>
 <div id="game-container">
-  <h1>REBEL CIPHER VAULT</h1>
-  <p>DECODE THE ENCRYPTED IMPERIAL MESSAGE:</p>
+  <h1>CYLINDER MESSAGE</h1>
+  <p>DECODE THE INCOMPLETE MESSAGE:</p>
   <div id="encrypted-quote"></div>
-  <p>MATCH EACH NUMBER (0–7) WITH A UNIQUE LETTER TO DECODE THE MESSAGE.</p>
+  <p>MATCH EACH NUMBER (1–4) WITH A UNIQUE LETTER TO DECODE THE MESSAGE.</p>
   <div id="mapping-container"></div>
   <button onclick="decodeQuote()">DECODE</button>
   <div id="decoded-quote"></div>
   <div id="result"></div>
 </div>
 <script>
-  const originalQuote = 'THE SWIFTEST PATH TO DESTRUCTION IS THROUGH VENGEANCE';
+  const originalQuote = 'SILVER DUST IN THE AIR';
 
-  // Step 1: pick only 8 letters for the cryptogram
+  // Step 1: pick only 5 letters for the cryptogram
   const uniqueLetters = [...new Set(originalQuote.replace(/[^A-Z]/g, '').split(''))];
   const shuffled = uniqueLetters.sort(() => Math.random() - 0.5);
-  const selectedLetters = shuffled.slice(0, 8); // exactly 8 hidden letters
+  const selectedLetters = shuffled.slice(0, 4); // exactly 5 hidden letters
 
-  // Build cipher mapping: assign digits 0–7 to the 8 letters
+  // Build cipher mapping: assign digits 0–5 to the 6 letters
   const cipherMapping = {};
   selectedLetters.forEach((letter, i) => {
-    cipherMapping[i] = letter; // number i maps to that letter
+    cipherMapping[i+1] = letter; // number i maps to that letter
   });
 
   // Build reverse mapping: letter → digit
@@ -141,7 +141,7 @@
     const mappingContainer = document.getElementById('mapping-container');
     mappingContainer.innerHTML = '';
 
-    // Extract all digits 0–7 from encrypted words
+    // Extract all digits 0–5 from encrypted words
     const numbersInUse = [...new Set(
       encryptedQuoteArray.join(' ').match(/\d/g) || []
     )];
@@ -228,8 +228,8 @@
     const normalizedOriginal = originalQuote.replace(/\s+/g,'').toUpperCase();
 
     if (normalizedDecoded === normalizedOriginal) {
-      document.getElementById('result').innerHTML = 'MESSAGE DECODED. PASSWORD: <strong>VENGEANCE</strong>' +
-        '<br/><br/> Go to the Homestead to continue.';
+      document.getElementById('result').innerHTML = 'MESSAGE DECIPHERED. PASSWORD: <strong>SILVER DUST</strong>' +
+        '<br/><br/> Go to the Café to continue.';
       document.getElementById('result').style.color = '#00ff00';
     } else {
       document.getElementById('result').innerHTML = 'DECODING ERROR. TRY AGAIN.';
