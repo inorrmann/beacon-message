@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cylinder Message</title>
+  <title>Data Plate Message</title>
+
   <style>
       body {
           font-family: 'Courier New', monospace;
@@ -17,6 +18,7 @@
           color: #00ff00;
           padding: 10px;
       }
+
       #game-container {
           text-align: center;
           background: rgba(0, 0, 0, 0.85);
@@ -27,222 +29,176 @@
           width: 800px;
           box-sizing: border-box;
       }
-      #encrypted-quote {
-          font-size: 18px;
+
+      #phrase {
+          font-size: 20px;
           margin: 20px 0;
-          white-space: normal;      /* allow natural wrapping */
-          word-break: normal;       /* keep whole words intact */
-          overflow-wrap: anywhere;  /* fallback for small screens */
-      }
-      #mapping-container {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
-          gap: 12px;
-          margin: 20px 0;
-      }
-      .mapping {
+          white-space: normal;
           display: flex;
-          flex-direction: column;
-          align-items: center;
+          flex-wrap: wrap;
+          gap: 35px;
+          color: #ffff00;
           justify-content: center;
       }
-      .mapping label {
-          font-size: 14px;
-          margin-bottom: 4px;
+
+      .word-block {
+          white-space: nowrap;
+          display: inline-block;
       }
-      input {
-          padding: 6px;
+
+      #alphabet-container {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+          gap: 10px;
+          margin-top: 20px;
+      }
+
+      .letter-btn {
+          padding: 8px;
           font-size: 16px;
           background-color: #000;
           color: #00ff00;
           border: 1px solid #00ff00;
-          width: 45px;
-          text-transform: uppercase;
-          text-align: center;
           border-radius: 4px;
-      }
-      button {
-          padding: 10px 20px;
-          font-size: 16px;
           cursor: pointer;
-          background-color: #00ff00;
-          color: #000;
-          border: none;
-          border-radius: 4px;
-          margin-top: 10px;
       }
-      button:hover {
-          background-color: #00cc00;
+
+      .letter-btn:disabled {
+          background-color: #003300;
+          color: #004400;
+          border-color: #004400;
+          cursor: not-allowed;
       }
-      #decoded-quote {
-          font-size: 18px;
-          margin: 20px 0;
-          white-space: pre-wrap;
-          word-wrap: break-word;
-          color: #ffff00;
-      }
-      #result {
+
+      #status {
           margin-top: 20px;
+          font-size: 18px;
           font-weight: bold;
-          word-wrap: break-word;
       }
   </style>
-
 </head>
+
 <body>
+
 <div id="game-container">
-  <h1>DAMAGED CYLINDER MESSAGE</h1>
-  <p>DECODE THE INCOMPLETE MESSAGE:</p>
-  <div id="encrypted-quote"></div>
-  <p>MATCH EACH NUMBER (1–4) WITH A UNIQUE LETTER TO DECODE THE MESSAGE.</p>
-  <div id="mapping-container"></div>
-  <button onclick="decodeQuote()">DECODE</button>
-  <div id="decoded-quote"></div>
-  <div id="result"></div>
+  <h1>DATA PLATE MESSAGE</h1>
+  <p>DECODE THE MESSAGE TO CONTINUE</p>
+
+  <div id="phrase"></div>
+
+  <p>MISSED LETTERS: <span id="misses">0</span> / 5</p>
+
+  <div id="alphabet-container"></div>
+
+  <div id="status"></div>
 </div>
+
 <script>
-  const originalQuote = 'SILVER DUST IS IN THE AIR';
+  const phrase = "THE OUTPOST IS NOT EMPTY. YOU WERE EXPECTED.";
+  const glyphSet = ["⟒","⍜","⟟","⌖","⟊","⋔","⟴","⧫","◬","❖","⌬","⍦","⧗","⟆","⧘","⧙","⧚","⧛","⬡","⬢","⬣","⬤","⟁","⟡","✦","✧"];
+  const letterToGlyph = {};
+  [...new Set(phrase.replace(/[^A-Z]/g, ''))].forEach((l,i) => { letterToGlyph[l] = glyphSet[i % glyphSet.length]; });
 
-  // Step 1: pick only 5 letters for the cryptogram
-  const uniqueLetters = [...new Set(originalQuote.replace(/[^A-Z]/g, '').split(''))];
-  const shuffled = uniqueLetters.sort(() => Math.random() - 0.5);
-  const selectedLetters = shuffled.slice(0, 4); // exactly 5 hidden letters
+  let revealed = [];
+  let misses = 0;
+  let guessed = new Set();
 
-  // Build cipher mapping: assign digits 0–5 to the 6 letters
-  const cipherMapping = {};
-  selectedLetters.forEach((letter, i) => {
-    cipherMapping[i+1] = letter; // number i maps to that letter
-  });
-
-  // Build reverse mapping: letter → digit
-  const plainToCipher = {};
-  for (let num in cipherMapping) {
-    plainToCipher[cipherMapping[num].charCodeAt(0) - 65] = parseInt(num);
-  }
-
-  // Step 2: Encrypt quote
-  // Build encrypted quote word-by-word
-  const encryptedQuoteArray = originalQuote.split(' ').map(word => {
-    return word.split('').map(char => {
-      if (char === '.' || char === ',') return char;
-      const plainIndex = char.charCodeAt(0) - 65;
-      const num = plainToCipher[plainIndex];
-      return num !== undefined ? num.toString() : char;
-    }).join('');
-  });
-
-  let userMapping = {};
-
-  function renderEncryptedQuote() {
-    document.getElementById('encrypted-quote').textContent = encryptedQuoteArray.join(' ');
-  }
-
-  function renderMappings() {
-    const mappingContainer = document.getElementById('mapping-container');
-    mappingContainer.innerHTML = '';
-
-    // Extract all digits 0–5 from encrypted words
-    const numbersInUse = [...new Set(
-      encryptedQuoteArray.join(' ').match(/\d/g) || []
-    )];
-
-    numbersInUse.forEach(num => {
-      const mappingDiv = document.createElement('div');
-      mappingDiv.className = 'mapping';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.maxLength = '1';
-      input.dataset.number = num;
-
-      mappingDiv.innerHTML = `<label>${num}</label>`;
-      mappingDiv.appendChild(input);
-      mappingContainer.appendChild(mappingDiv);
-    });
-  }
-
-  function updateDecodedQuote() {
-    const inputs = document.querySelectorAll('input');
-    const currentMappings = {};
-
-    // Collect live user mappings from inputs
-    inputs.forEach(input => {
-      const num = input.dataset.number;
-      const letter = input.value.toUpperCase();
-      if (letter) {
-        currentMappings[num] = letter;
-      }
+  function initGame() {
+    revealed = phrase.split("").map(ch => {
+      if (/[A-Z]/.test(ch)) return letterToGlyph[ch];
+      return ch;
     });
 
-    // Build decoded text word-by-word
-    const decodedArray = encryptedQuoteArray.map(word =>
-      word.split('').map(char => {
-        if (/\d/.test(char)) {
-          // Show user's letter if they entered one, else keep the number
-          return currentMappings[char] || char;
+    misses = 0;
+    guessed.clear();
+
+    document.getElementById("misses").textContent = misses;
+    document.getElementById("status").textContent = "";
+
+    renderPhrase();
+    renderAlphabet();
+  }
+
+  function renderPhrase() {
+    const phraseContainer = document.getElementById("phrase");
+    phraseContainer.innerHTML = "";
+
+    const words = phrase.split(" ");
+
+    words.forEach(word => {
+      const wordSpan = document.createElement("span");
+      wordSpan.className = "word-block";
+
+      word.split("").forEach((letter,i) => {
+        const upper = letter.toUpperCase();
+        if (guessed.has(upper)) {
+          wordSpan.innerHTML += upper + " ";
+        } else {
+          wordSpan.innerHTML += (letterToGlyph[upper] || letter) + " ";
         }
-        return char;
-      }).join('')
-    );
-
-    document.getElementById('decoded-quote').textContent = decodedArray.join(' ');
+      });
+      phraseContainer.appendChild(wordSpan);
+    });
   }
 
-  function decodeQuote() {
-    const inputs = document.querySelectorAll('input');
-    const usedPlains = new Set();
-    userMapping = {};
-    let isValid = true;
+  function renderAlphabet() {
+    const container = document.getElementById("alphabet-container");
+    container.innerHTML = "";
 
-    // collect mappings
-    inputs.forEach(input => {
-      const num = input.dataset.number;
-      const plain = input.value.toUpperCase();
-      if (plain && !input.disabled) {
-        if (usedPlains.has(plain)) isValid = false;
-        usedPlains.add(plain);
-        userMapping[num] = plain;
-      }
-    });
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(l => {
+      const btn = document.createElement("button");
+      btn.textContent = l;
+      btn.className = "letter-btn";
+      btn.disabled = guessed.has(l);
+      btn.onclick = () => {
+        guessed.add(l);
+        // reveal glyphs corresponding to guessed letter
+        phrase.split("").forEach((ch,i) => {
+          if (ch.toUpperCase() === l) {
+            revealed[i] = ch;
+          }
+        });
 
-    if (!isValid) {
-      document.getElementById('result').innerHTML = 'MAPPING INVALID. NO REPEAT LETTERS.';
-      document.getElementById('result').style.color = '#ff0000';
-      return;
-    }
-
-    // build decoded quote word-by-word, character-by-character
-    const decodedWords = encryptedQuoteArray.map(word => {
-      return word.split('').map(char => {
-        if (/\d/.test(char)) {
-          return userMapping[char] || char; // replace digit if mapped
+        if (!phrase.toUpperCase().includes(l)) {
+          misses++;
+          document.getElementById("misses").textContent = misses;
+          if (misses >= 5) {
+            document.getElementById("status").innerHTML = "TOO MANY FAILED ATTEMPTS.<br/>DATA PANEL RESETTING...";
+            document.getElementById("status").style.color = "#ff0000";
+            disableAllButtons();
+            setTimeout(initGame, 6000);
+            return;
+          }
         }
-        return char; // revealed letters or punctuation
-      }).join('');
+
+        renderPhrase();
+        renderAlphabet();
+        checkWin();
+      };
+      container.appendChild(btn);
     });
+  }
 
-    const decoded = decodedWords.join(' ');
-    document.getElementById('decoded-quote').textContent = decoded;
+  function checkWin() {
+    const normalized = revealed.map(ch => {
+      if (Object.values(letterToGlyph).includes(ch)) return '_';
+      return ch;
+    }).join('').replace(/\s/g,'').toUpperCase();
 
-    // normalize for comparison
-    const normalizedDecoded = decoded.replace(/\s+/g,'').toUpperCase();
-    const normalizedOriginal = originalQuote.replace(/\s+/g,'').toUpperCase();
+    const solutionNormalized = phrase.replace(/\s/g,'').toUpperCase();
 
-    if (normalizedDecoded === normalizedOriginal) {
-      document.getElementById('result').innerHTML = 'MESSAGE DECIPHERED. PASSWORD: <strong>SILVER DUST</strong>' +
-        '<br/><br/> Go to the Café to continue.';
-      document.getElementById('result').style.color = '#00ff00';
-    } else {
-      document.getElementById('result').innerHTML = 'DECODING ERROR. TRY AGAIN.';
-      document.getElementById('result').style.color = '#ff0000';
+    if (normalized === solutionNormalized) {
+      document.getElementById("status").innerHTML = 'MESSAGE DECODED. PASSWORD: <strong>EXPECTED</strong><br/><br/>Go to the Homestead to continue.';
+      document.getElementById("status").style.color = "#00ff00";
+      disableAllButtons();
     }
   }
 
-  // Initialize
-  renderEncryptedQuote();
-  renderMappings();
-  document.querySelectorAll('input').forEach(input => {
-    input.addEventListener('input', updateDecodedQuote);
-  });
+  function disableAllButtons() {
+    document.querySelectorAll('.letter-btn').forEach(btn => btn.disabled = true);
+  }
+
+  initGame();
 </script>
 
 </body>
